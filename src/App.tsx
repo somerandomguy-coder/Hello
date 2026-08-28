@@ -108,6 +108,14 @@ export const App: React.FC = () => {
     await loadData();
   };
 
+  const handleDeleteUser = async (user: User) => {
+    await StorageService.deleteUser(user);
+    if (currentUser === user.name) {
+      setCurrentUser(null);
+    }
+    await loadData();
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#faf9f5] dark:bg-[#121214] text-[#2c2c2c] dark:text-[#e4e4e7] transition-colors duration-200">
       <Navbar
@@ -124,6 +132,7 @@ export const App: React.FC = () => {
         <UserSelectionModal
           existingUsers={users}
           onSelectUser={handleSelectUser}
+          onDeleteUser={handleDeleteUser}
         />
       ) : (
         <main className="flex-1 flex flex-col">

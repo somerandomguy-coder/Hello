@@ -78,7 +78,7 @@ export class StorageService {
     }
 
     const local = localStorage.getItem(STORAGE_KEY_USERS);
-    if (local) {
+    if (local !== null) {
       try {
         return JSON.parse(local);
       } catch (e) {
@@ -104,13 +104,45 @@ export class StorageService {
     };
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('users').insert({ name: trimmed });
+      await supabase.from('users').insert({ id: newUser.id, name: trimmed });
     }
 
     const updated = [...users, newUser];
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(updated));
     broadcastChannel?.postMessage({ type: 'USERS_UPDATED' });
     return newUser;
+  }
+
+  static async deleteUser(user: User): Promise<void> {
+    const users = await this.getUsers();
+    const updatedUsers = users.filter((u) => u.id !== user.id && u.name !== user.name);
+
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from('users').delete().eq('name', user.name);
+    }
+
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(updatedUsers));
+
+    // Remove user from card assignments
+    const cards = await this.getCards();
+    const updatedCards = cards.map((card) => {
+      if (card.assigned_to.includes(user.name)) {
+        return {
+          ...card,
+          assigned_to: card.assigned_to.filter((n) => n !== user.name),
+        };
+      }
+      return card;
+    });
+    localStorage.setItem(STORAGE_KEY_CARDS, JSON.stringify(updatedCards));
+
+    // Clear active user if it was the deleted user
+    if (this.getCurrentUser() === user.name) {
+      this.clearCurrentUser();
+    }
+
+    broadcastChannel?.postMessage({ type: 'USERS_UPDATED' });
+    broadcastChannel?.postMessage({ type: 'DATA_UPDATED' });
   }
 
   // --- Columns ---

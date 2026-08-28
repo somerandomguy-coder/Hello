@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { User as UserType } from '../types/kanban';
-import { User, Plus, UserCheck, Sparkles } from 'lucide-react';
+import { User, Plus, UserCheck, Sparkles, Trash2 } from 'lucide-react';
 
 interface UserSelectionModalProps {
   existingUsers: UserType[];
   onSelectUser: (userName: string) => void;
+  onDeleteUser: (user: UserType) => void;
 }
 
 export const UserSelectionModal: React.FC<UserSelectionModalProps> = ({
   existingUsers,
   onSelectUser,
+  onDeleteUser,
 }) => {
   const [nameInput, setNameInput] = useState('');
   const [error, setError] = useState('');
@@ -36,7 +38,7 @@ export const UserSelectionModal: React.FC<UserSelectionModalProps> = ({
             Welcome to Hello!
           </h2>
           <p className="text-sm font-sans text-gray-600 dark:text-gray-400 mt-1">
-            Who is using the workspace right now? Select your name or register a new user.
+            Who is using the workspace right now? Select your name, register a new user, or remove existing ones.
           </p>
         </div>
 
@@ -44,20 +46,36 @@ export const UserSelectionModal: React.FC<UserSelectionModalProps> = ({
         {existingUsers.length > 0 && (
           <div className="mb-6">
             <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3 font-sans">
-              Select Existing Member ({existingUsers.length})
+              Select or Remove Workspace Member ({existingUsers.length})
             </label>
-            <div className="grid grid-cols-2 gap-2.5 max-h-48 overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 gap-2 max-h-52 overflow-y-auto pr-1">
               {existingUsers.map((user) => (
-                <button
+                <div
                   key={user.id}
-                  onClick={() => onSelectUser(user.name)}
-                  className="flex items-center gap-2.5 p-3 rounded-xl border-2 border-[#2c2c2c] dark:border-[#555] bg-white dark:bg-[#24242e] hover:bg-[#81b29a]/20 dark:hover:bg-[#81b29a]/20 text-[#2c2c2c] dark:text-[#e4e4e7] text-left transition-all sketch-box font-hand text-lg font-bold group"
+                  className="flex items-center justify-between p-2.5 rounded-xl border-2 border-[#2c2c2c] dark:border-[#555] bg-white dark:bg-[#24242e] hover:bg-[#81b29a]/15 dark:hover:bg-[#81b29a]/15 transition-all sketch-box font-hand text-lg font-bold group"
                 >
-                  <div className="w-8 h-8 rounded-full border border-[#2c2c2c] bg-[#e07a5f] text-white flex items-center justify-center text-sm font-sans font-bold group-hover:scale-110 transition-transform">
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="truncate">{user.name}</span>
-                </button>
+                  <button
+                    onClick={() => onSelectUser(user.name)}
+                    className="flex-1 flex items-center gap-3 text-left overflow-hidden"
+                  >
+                    <div className="w-8 h-8 rounded-full border border-[#2c2c2c] bg-[#e07a5f] text-white flex items-center justify-center text-sm font-sans font-bold flex-shrink-0 group-hover:scale-105 transition-transform">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="truncate text-[#2c2c2c] dark:text-[#e4e4e7]">{user.name}</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Remove member "${user.name}" from workspace?`)) {
+                        onDeleteUser(user);
+                      }
+                    }}
+                    className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                    title={`Delete ${user.name}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               ))}
             </div>
           </div>
