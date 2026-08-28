@@ -1,4 +1,4 @@
--- ExcaliBoard Supabase Schema & Realtime Setup
+-- Hello Supabase Schema & Realtime Setup
 -- Copy and paste this into Supabase SQL Editor to set up your backend DB!
 
 -- 1. Create Users Table

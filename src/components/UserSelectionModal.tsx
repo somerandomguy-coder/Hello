@@ -33,7 +33,7 @@ export const UserSelectionModal: React.FC<UserSelectionModalProps> = ({
             <Sparkles className="w-7 h-7" />
           </div>
           <h2 className="text-3xl font-bold font-hand text-[#2c2c2c] dark:text-[#f4f1de]">
-            Welcome to ExcaliBoard!
+            Welcome to Hello!
           </h2>
           <p className="text-sm font-sans text-gray-600 dark:text-gray-400 mt-1">
             Who is using the workspace right now? Select your name or register a new user.

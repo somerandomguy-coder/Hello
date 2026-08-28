@@ -25,7 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
           <div>
             <h1 className="text-2xl font-bold font-hand text-[#2c2c2c] dark:text-[#f4f1de] tracking-wide flex items-center gap-2">
-              ExcaliBoard
+              Hello
               <span className="text-xs px-2 py-0.5 rounded-full border border-[#2c2c2c] dark:border-[#666666] bg-[#f4f1de] dark:bg-[#22222a] text-[#2c2c2c] dark:text-[#f4f1de] font-sans font-medium">
                 v1.0
               </span>
