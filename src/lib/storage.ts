@@ -6,12 +6,10 @@ const STORAGE_KEY_COLUMNS = 'excali_kanban_columns';
 const STORAGE_KEY_CARDS = 'excali_kanban_cards';
 const STORAGE_KEY_CURRENT_USER = 'excali_kanban_current_user';
 
-// Seed Defaults
-const DEFAULT_USERS: User[] = [
-  { id: 'usr-1', name: 'Alex' },
-  { id: 'usr-2', name: 'Sam' },
-  { id: 'usr-3', name: 'Jordan' },
-];
+const LEGACY_DEFAULT_NAMES = ['Alex', 'Sam', 'Jordan'];
+
+// Default users empty so users start fresh
+const DEFAULT_USERS: User[] = [];
 
 const DEFAULT_COLUMNS: Column[] = [
   { id: 'col-backlog', name: 'Backlog', position: 0 },
@@ -25,9 +23,9 @@ const DEFAULT_CARDS: Card[] = [
     column_id: 'col-backlog',
     title: '✏️ Design Excalidraw aesthetic UI',
     description: 'Use hand-drawn font, sketchy borders, and smooth drag and drop.',
-    assigned_to: ['Alex'],
+    assigned_to: [],
     position: 0,
-    updated_by: 'Alex',
+    updated_by: 'System',
     updated_at: new Date().toISOString(),
   },
   {
@@ -35,9 +33,9 @@ const DEFAULT_CARDS: Card[] = [
     column_id: 'col-ongoing',
     title: '🚀 Setup Supabase Realtime & Netlify config',
     description: 'Ensure multi-user realtime sync works out of the box.',
-    assigned_to: ['Sam', 'Jordan'],
+    assigned_to: [],
     position: 0,
-    updated_by: 'Sam',
+    updated_by: 'System',
     updated_at: new Date().toISOString(),
   },
   {
@@ -45,9 +43,9 @@ const DEFAULT_CARDS: Card[] = [
     column_id: 'col-done',
     title: '🎉 Initialize workspace repository',
     description: 'Package json, Tailwind CSS, TypeScript setup complete.',
-    assigned_to: ['Jordan'],
+    assigned_to: [],
     position: 0,
-    updated_by: 'Jordan',
+    updated_by: 'System',
     updated_at: new Date().toISOString(),
   },
 ];
@@ -58,7 +56,12 @@ const broadcastChannel = typeof window !== 'undefined' ? new BroadcastChannel('e
 export class StorageService {
   // Current User management
   static getCurrentUser(): string | null {
-    return localStorage.getItem(STORAGE_KEY_CURRENT_USER);
+    const current = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
+    if (current && LEGACY_DEFAULT_NAMES.includes(current)) {
+      localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
+      return null;
+    }
+    return current;
   }
 
   static setCurrentUser(name: string): void {
@@ -72,21 +75,38 @@ export class StorageService {
 
   // --- Users ---
   static async getUsers(): Promise<User[]> {
+    let usersList: User[] = [];
+
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.from('users').select('*').order('name');
-      if (!error && data && data.length > 0) return data;
-    }
-
-    const local = localStorage.getItem(STORAGE_KEY_USERS);
-    if (local !== null) {
-      try {
-        return JSON.parse(local);
-      } catch (e) {
-        console.error(e);
+      if (!error && data) {
+        usersList = data;
+      }
+    } else {
+      const local = localStorage.getItem(STORAGE_KEY_USERS);
+      if (local !== null) {
+        try {
+          usersList = JSON.parse(local);
+        } catch (e) {
+          console.error(e);
+        }
       }
     }
-    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(DEFAULT_USERS));
-    return DEFAULT_USERS;
+
+    // Filter out legacy seed names ('Alex', 'Sam', 'Jordan')
+    const filteredUsers = usersList.filter(
+      (u) => !LEGACY_DEFAULT_NAMES.includes(u.name)
+    );
+
+    // Save cleaned list back to local storage
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(filteredUsers));
+
+    // Also delete legacy names from Supabase if configured
+    if (isSupabaseConfigured && supabase && usersList.some(u => LEGACY_DEFAULT_NAMES.includes(u.name))) {
+      await supabase.from('users').delete().in('name', LEGACY_DEFAULT_NAMES);
+    }
+
+    return filteredUsers;
   }
 
   static async addOrGetUser(name: string): Promise<User> {
@@ -149,7 +169,7 @@ export class StorageService {
   static async getColumns(): Promise<Column[]> {
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.from('columns').select('*').order('position');
-      if (!error && data) return data;
+      if (!error && data && data.length > 0) return data;
     }
 
     const local = localStorage.getItem(STORAGE_KEY_COLUMNS);
@@ -212,21 +232,42 @@ export class StorageService {
 
   // --- Cards ---
   static async getCards(): Promise<Card[]> {
+    let cardsList: Card[] = [];
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.from('cards').select('*').order('position');
-      if (!error && data) return data;
+      if (!error && data && data.length > 0) cardsList = data;
     }
 
-    const local = localStorage.getItem(STORAGE_KEY_CARDS);
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch (e) {
-        console.error(e);
+    if (cardsList.length === 0) {
+      const local = localStorage.getItem(STORAGE_KEY_CARDS);
+      if (local) {
+        try {
+          cardsList = JSON.parse(local);
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        cardsList = DEFAULT_CARDS;
       }
     }
-    localStorage.setItem(STORAGE_KEY_CARDS, JSON.stringify(DEFAULT_CARDS));
-    return DEFAULT_CARDS;
+
+    // Clean legacy names from card assignments & updated_by
+    const cleanedCards = cardsList.map((card) => {
+      const cleanAssigned = (card.assigned_to || []).filter(
+        (name) => !LEGACY_DEFAULT_NAMES.includes(name)
+      );
+      const cleanUpdatedBy = LEGACY_DEFAULT_NAMES.includes(card.updated_by)
+        ? 'System'
+        : card.updated_by;
+      return {
+        ...card,
+        assigned_to: cleanAssigned,
+        updated_by: cleanUpdatedBy,
+      };
+    });
+
+    localStorage.setItem(STORAGE_KEY_CARDS, JSON.stringify(cleanedCards));
+    return cleanedCards;
   }
 
   static async addCard(columnId: string, title: string, currentUser: string): Promise<Card> {
@@ -281,15 +322,11 @@ export class StorageService {
     const targetCard = cards.find((c) => c.id === cardId);
     if (!targetCard) return;
 
-    // Filter out target card
     const remaining = cards.filter((c) => c.id !== cardId);
-
-    // Get cards in target column sorted by position
     const targetColCards = remaining
       .filter((c) => c.column_id === targetColumnId)
       .sort((a, b) => a.position - b.position);
 
-    // Insert target card into new position
     targetColCards.splice(newPosition, 0, {
       ...targetCard,
       column_id: targetColumnId,
@@ -297,18 +334,15 @@ export class StorageService {
       updated_at: new Date().toISOString(),
     });
 
-    // Re-assign position indices for target column
     const reindexedTarget = targetColCards.map((card, idx) => ({
       ...card,
       position: idx,
     }));
 
-    // Combine with unaffected cards from other columns
     const unaffected = remaining.filter((c) => c.column_id !== targetColumnId);
     const finalCards = [...unaffected, ...reindexedTarget];
 
     if (isSupabaseConfigured && supabase) {
-      // Upsert batch in Supabase
       const cardToUpdate = reindexedTarget.find((c) => c.id === cardId);
       if (cardToUpdate) {
         await supabase.from('cards').update({

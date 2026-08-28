@@ -36,23 +36,19 @@ VALUES
   ('col-done', 'Done', 2)
 ON CONFLICT (id) DO NOTHING;
 
--- 5. Seed Initial Workspace Users
-INSERT INTO public.users (name)
-VALUES ('Alex'), ('Sam'), ('Jordan')
-ON CONFLICT (name) DO NOTHING;
-
--- 6. Enable Row Level Security (RLS) and grant public read/write access for demo/workspace team
+-- 5. Enable Row Level Security (RLS) and grant public read/write access for workspace team
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.columns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cards ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow public read users" ON public.users FOR SELECT USING (true);
 CREATE POLICY "Allow public insert users" ON public.users FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public delete users" ON public.users FOR DELETE USING (true);
 
 CREATE POLICY "Allow public all columns" ON public.columns FOR ALL USING (true);
 CREATE POLICY "Allow public all cards" ON public.cards FOR ALL USING (true);
 
--- 7. Enable Realtime Replication for instant multi-user syncing!
+-- 6. Enable Realtime Replication for instant multi-user syncing!
 ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.columns;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.cards;
