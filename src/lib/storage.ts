@@ -121,15 +121,22 @@ export class StorageService {
     if (existing) return existing;
 
     const newUser: User = {
-      id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `usr-${Date.now()}`,
       name: trimmed,
       created_at: new Date().toISOString(),
     };
 
     if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('users').insert({ id: newUser.id, name: trimmed });
+      const { data, error } = await supabase
+        .from('users')
+        .insert({ name: trimmed })
+        .select()
+        .single();
+
       if (error) {
         console.error('[Supabase] Error adding user:', error);
+      } else if (data && data.id) {
+        newUser.id = data.id;
       }
     }
 
