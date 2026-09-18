@@ -41,16 +41,41 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.columns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cards ENABLE ROW LEVEL SECURITY;
 
--- Drop previous granular policies if re-running
+-- Drop previous policies if re-running query
 DROP POLICY IF EXISTS "Allow public read users" ON public.users;
 DROP POLICY IF EXISTS "Allow public insert users" ON public.users;
 DROP POLICY IF EXISTS "Allow public delete users" ON public.users;
+DROP POLICY IF EXISTS "Allow public all users" ON public.users;
 
-CREATE POLICY "Allow public all users" ON public.users FOR ALL USING (true);
-CREATE POLICY "Allow public all columns" ON public.columns FOR ALL USING (true);
-CREATE POLICY "Allow public all cards" ON public.cards FOR ALL USING (true);
+DROP POLICY IF EXISTS "Allow public all columns" ON public.columns;
+DROP POLICY IF EXISTS "Allow public all cards" ON public.cards;
 
--- 6. Enable Realtime Replication for instant multi-user syncing!
-ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.columns;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.cards;
+-- Create unified RLS policies
+CREATE POLICY "Allow public all users" ON public.users FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all columns" ON public.columns FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all cards" ON public.cards FOR ALL USING (true) WITH CHECK (true);
+
+-- 6. Enable Realtime Replication for instant multi-user syncing (Idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'users'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'columns'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.columns;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'cards'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.cards;
+  END IF;
+END $$;
