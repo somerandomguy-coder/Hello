@@ -79,6 +79,9 @@ export class StorageService {
 
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.from('users').select('*').order('name');
+      if (error) {
+        console.error('[Supabase] Error fetching users:', error);
+      }
       if (!error && data) {
         usersList = data;
       }
@@ -124,7 +127,10 @@ export class StorageService {
     };
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('users').insert({ id: newUser.id, name: trimmed });
+      const { error } = await supabase.from('users').insert({ id: newUser.id, name: trimmed });
+      if (error) {
+        console.error('[Supabase] Error adding user:', error);
+      }
     }
 
     const updated = [...users, newUser];
@@ -138,7 +144,10 @@ export class StorageService {
     const updatedUsers = users.filter((u) => u.id !== user.id && u.name !== user.name);
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('users').delete().eq('name', user.name);
+      const { error } = await supabase.from('users').delete().eq('name', user.name);
+      if (error) {
+        console.error('[Supabase] Error deleting user:', error);
+      }
     }
 
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(updatedUsers));
@@ -169,6 +178,9 @@ export class StorageService {
   static async getColumns(): Promise<Column[]> {
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.from('columns').select('*').order('position');
+      if (error) {
+        console.error('[Supabase] Error fetching columns:', error);
+      }
       if (!error && data && data.length > 0) return data;
     }
 
@@ -193,7 +205,8 @@ export class StorageService {
     };
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('columns').insert(newCol);
+      const { error } = await supabase.from('columns').insert(newCol);
+      if (error) console.error('[Supabase] Error adding column:', error);
     }
 
     const updated = [...columns, newCol];
@@ -207,7 +220,8 @@ export class StorageService {
     const updated = columns.map((col) => (col.id === id ? { ...col, name } : col));
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('columns').update({ name }).eq('id', id);
+      const { error } = await supabase.from('columns').update({ name }).eq('id', id);
+      if (error) console.error('[Supabase] Error updating column:', error);
     }
 
     localStorage.setItem(STORAGE_KEY_COLUMNS, JSON.stringify(updated));
@@ -222,7 +236,8 @@ export class StorageService {
     const updatedCards = cards.filter((card) => card.column_id !== id);
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('columns').delete().eq('id', id);
+      const { error } = await supabase.from('columns').delete().eq('id', id);
+      if (error) console.error('[Supabase] Error deleting column:', error);
     }
 
     localStorage.setItem(STORAGE_KEY_COLUMNS, JSON.stringify(updatedCols));
@@ -235,6 +250,9 @@ export class StorageService {
     let cardsList: Card[] = [];
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.from('cards').select('*').order('position');
+      if (error) {
+        console.error('[Supabase] Error fetching cards:', error);
+      }
       if (!error && data && data.length > 0) cardsList = data;
     }
 
@@ -286,7 +304,8 @@ export class StorageService {
     };
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('cards').insert(newCard);
+      const { error } = await supabase.from('cards').insert(newCard);
+      if (error) console.error('[Supabase] Error adding card:', error);
     }
 
     const updated = [...cards, newCard];
@@ -304,7 +323,8 @@ export class StorageService {
     };
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('cards').update(updatedCard).eq('id', card.id);
+      const { error } = await supabase.from('cards').update(updatedCard).eq('id', card.id);
+      if (error) console.error('[Supabase] Error updating card:', error);
     }
 
     const updated = cards.map((c) => (c.id === card.id ? updatedCard : c));
@@ -345,12 +365,13 @@ export class StorageService {
     if (isSupabaseConfigured && supabase) {
       const cardToUpdate = reindexedTarget.find((c) => c.id === cardId);
       if (cardToUpdate) {
-        await supabase.from('cards').update({
+        const { error } = await supabase.from('cards').update({
           column_id: targetColumnId,
           position: newPosition,
           updated_by: currentUser,
           updated_at: new Date().toISOString(),
         }).eq('id', cardId);
+        if (error) console.error('[Supabase] Error moving card:', error);
       }
     }
 
@@ -363,7 +384,8 @@ export class StorageService {
     const updated = cards.filter((c) => c.id !== id);
 
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('cards').delete().eq('id', id);
+      const { error } = await supabase.from('cards').delete().eq('id', id);
+      if (error) console.error('[Supabase] Error deleting card:', error);
     }
 
     localStorage.setItem(STORAGE_KEY_CARDS, JSON.stringify(updated));

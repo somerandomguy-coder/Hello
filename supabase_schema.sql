@@ -41,10 +41,12 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.columns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cards ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read users" ON public.users FOR SELECT USING (true);
-CREATE POLICY "Allow public insert users" ON public.users FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public delete users" ON public.users FOR DELETE USING (true);
+-- Drop previous granular policies if re-running
+DROP POLICY IF EXISTS "Allow public read users" ON public.users;
+DROP POLICY IF EXISTS "Allow public insert users" ON public.users;
+DROP POLICY IF EXISTS "Allow public delete users" ON public.users;
 
+CREATE POLICY "Allow public all users" ON public.users FOR ALL USING (true);
 CREATE POLICY "Allow public all columns" ON public.columns FOR ALL USING (true);
 CREATE POLICY "Allow public all cards" ON public.cards FOR ALL USING (true);
 
